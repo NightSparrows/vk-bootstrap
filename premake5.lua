@@ -12,7 +12,7 @@ project "VKBootstrap"
 
 	files {
 		"src/VKBootstrap.h",
-		"src/VKBootstrap.cpp"
+		"src/VKBootstrap.cpp",
 		"src/VkBootstrapDispatch.h"
 	}
 	
