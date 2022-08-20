@@ -13,6 +13,7 @@ project "VKBootstrap"
 	files {
 		"src/VKBootstrap.h",
 		"src/VKBootstrap.cpp"
+		"src/VkBootstrapDispatch.h"
 	}
 	
 	filter "configurations:Debug"
