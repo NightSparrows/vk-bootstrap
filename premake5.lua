@@ -1,7 +1,6 @@
 project "VKBootstrap"
 	kind "StaticLib"
 	language "C++"
-	staticruntime "off"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -16,6 +15,9 @@ project "VKBootstrap"
 		"src/VkBootstrapDispatch.h"
 	}
 	
+	filter "system:windows"
+		staticruntime "on"
+
 	filter "configurations:Debug"
 		runtime "Debug"
 		symbols "on"
