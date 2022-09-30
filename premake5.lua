@@ -15,9 +15,6 @@ project "VKBootstrap"
 		"src/VkBootstrapDispatch.h"
 	}
 	
-	filter "system:windows"
-		staticruntime "on"
-
 	filter "configurations:Debug"
 		runtime "Debug"
 		symbols "on"
