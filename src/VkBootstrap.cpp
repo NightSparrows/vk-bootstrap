@@ -387,96 +387,74 @@ std::error_code make_error_code(DeviceError device_error) {
 std::error_code make_error_code(SwapchainError swapchain_error) {
 	return { static_cast<int>(swapchain_error), detail::swapchain_error_category };
 }
+#define CASE_TO_STRING(CATEGORY, TYPE)                                                                                 \
+	case CATEGORY::TYPE:                                                                                               \
+		return #TYPE;
 
 const char* to_string(InstanceError err) {
 	switch (err) {
-		case InstanceError::vulkan_unavailable:
-			return "vulkan_unavailable";
-		case InstanceError::vulkan_version_unavailable:
-			return "vulkan_version_unavailable";
-		case InstanceError::vulkan_version_1_1_unavailable:
-			return "vulkan_version_1_1_unavailable";
-		case InstanceError::vulkan_version_1_2_unavailable:
-			return "vulkan_version_1_2_unavailable";
-		case InstanceError::failed_create_debug_messenger:
-			return "failed_create_debug_messenger";
-		case InstanceError::failed_create_instance:
-			return "failed_create_instance";
-		case InstanceError::requested_layers_not_present:
-			return "requested_layers_not_present";
-		case InstanceError::requested_extensions_not_present:
-			return "requested_extensions_not_present";
-		case InstanceError::windowing_extensions_not_present:
-			return "windowing_extensions_not_present";
+		CASE_TO_STRING(InstanceError, vulkan_unavailable)
+		CASE_TO_STRING(InstanceError, vulkan_version_unavailable)
+		CASE_TO_STRING(InstanceError, vulkan_version_1_1_unavailable)
+		CASE_TO_STRING(InstanceError, vulkan_version_1_2_unavailable)
+		CASE_TO_STRING(InstanceError, failed_create_debug_messenger)
+		CASE_TO_STRING(InstanceError, failed_create_instance)
+		CASE_TO_STRING(InstanceError, requested_layers_not_present)
+		CASE_TO_STRING(InstanceError, requested_extensions_not_present)
+		CASE_TO_STRING(InstanceError, windowing_extensions_not_present)
 		default:
 			return "";
 	}
 }
 const char* to_string(PhysicalDeviceError err) {
 	switch (err) {
-		case PhysicalDeviceError::no_surface_provided:
-			return "no_surface_provided";
-		case PhysicalDeviceError::failed_enumerate_physical_devices:
-			return "failed_enumerate_physical_devices";
-		case PhysicalDeviceError::no_physical_devices_found:
-			return "no_physical_devices_found";
-		case PhysicalDeviceError::no_suitable_device:
-			return "no_suitable_device";
+		CASE_TO_STRING(PhysicalDeviceError, no_surface_provided)
+		CASE_TO_STRING(PhysicalDeviceError, failed_enumerate_physical_devices)
+		CASE_TO_STRING(PhysicalDeviceError, no_physical_devices_found)
+		CASE_TO_STRING(PhysicalDeviceError, no_suitable_device)
 		default:
 			return "";
 	}
 }
 const char* to_string(QueueError err) {
 	switch (err) {
-		case QueueError::present_unavailable:
-			return "present_unavailable";
-		case QueueError::graphics_unavailable:
-			return "graphics_unavailable";
-		case QueueError::compute_unavailable:
-			return "compute_unavailable";
-		case QueueError::transfer_unavailable:
-			return "transfer_unavailable";
-		case QueueError::queue_index_out_of_range:
-			return "queue_index_out_of_range";
-		case QueueError::invalid_queue_family_index:
-			return "invalid_queue_family_index";
+		CASE_TO_STRING(QueueError, present_unavailable)
+		CASE_TO_STRING(QueueError, graphics_unavailable)
+		CASE_TO_STRING(QueueError, compute_unavailable)
+		CASE_TO_STRING(QueueError, transfer_unavailable)
+		CASE_TO_STRING(QueueError, queue_index_out_of_range)
+		CASE_TO_STRING(QueueError, invalid_queue_family_index)
 		default:
 			return "";
 	}
 }
 const char* to_string(DeviceError err) {
 	switch (err) {
-		case DeviceError::failed_create_device:
-			return "failed_create_device";
+		CASE_TO_STRING(DeviceError, failed_create_device)
 		default:
 			return "";
 	}
 }
 const char* to_string(SwapchainError err) {
 	switch (err) {
-		case SwapchainError::surface_handle_not_provided:
-			return "surface_handle_not_provided";
-		case SwapchainError::failed_query_surface_support_details:
-			return "failed_query_surface_support_details";
-		case SwapchainError::failed_create_swapchain:
-			return "failed_create_swapchain";
-		case SwapchainError::failed_get_swapchain_images:
-			return "failed_get_swapchain_images";
-		case SwapchainError::failed_create_swapchain_image_views:
-			return "failed_create_swapchain_image_views";
+		CASE_TO_STRING(SwapchainError, surface_handle_not_provided)
+		CASE_TO_STRING(SwapchainError, failed_query_surface_support_details)
+		CASE_TO_STRING(SwapchainError, failed_create_swapchain)
+		CASE_TO_STRING(SwapchainError, failed_get_swapchain_images)
+		CASE_TO_STRING(SwapchainError, failed_create_swapchain_image_views)
 		default:
 			return "";
 	}
 }
 
-detail::Result<SystemInfo> SystemInfo::get_system_info() {
+Result<SystemInfo> SystemInfo::get_system_info() {
 	if (!detail::vulkan_functions().init_vulkan_funcs(nullptr)) {
 		return make_error_code(InstanceError::vulkan_unavailable);
 	}
 	return SystemInfo();
 }
 
-detail::Result<SystemInfo> SystemInfo::get_system_info(PFN_vkGetInstanceProcAddr fp_vkGetInstanceProcAddr) {
+Result<SystemInfo> SystemInfo::get_system_info(PFN_vkGetInstanceProcAddr fp_vkGetInstanceProcAddr) {
 	// Using externally provided function pointers, assume the loader is available
 	if (!detail::vulkan_functions().init_vulkan_funcs(fp_vkGetInstanceProcAddr)) {
 		return make_error_code(InstanceError::vulkan_unavailable);
@@ -554,7 +532,7 @@ InstanceBuilder::InstanceBuilder(PFN_vkGetInstanceProcAddr fp_vkGetInstanceProcA
 }
 InstanceBuilder::InstanceBuilder() {}
 
-detail::Result<Instance> InstanceBuilder::build() const {
+Result<Instance> InstanceBuilder::build() const {
 
 	auto sys_info_ret = SystemInfo::get_system_info(info.fp_vkGetInstanceProcAddr);
 	if (!sys_info_ret) return sys_info_ret.error();
@@ -719,7 +697,7 @@ detail::Result<Instance> InstanceBuilder::build() const {
 	Instance instance;
 	VkResult res =
 	    detail::vulkan_functions().fp_vkCreateInstance(&instance_create_info, info.allocation_callbacks, &instance.instance);
-	if (res != VK_SUCCESS) return detail::Result<Instance>(InstanceError::failed_create_instance, res);
+	if (res != VK_SUCCESS) return Result<Instance>(InstanceError::failed_create_instance, res);
 
 	detail::vulkan_functions().init_instance_funcs(instance.instance);
 
@@ -732,7 +710,7 @@ detail::Result<Instance> InstanceBuilder::build() const {
 		    &instance.debug_messenger,
 		    info.allocation_callbacks);
 		if (res != VK_SUCCESS) {
-			return detail::Result<Instance>(InstanceError::failed_create_debug_messenger, res);
+			return Result<Instance>(InstanceError::failed_create_debug_messenger, res);
 		}
 	}
 
@@ -1162,7 +1140,7 @@ PhysicalDeviceSelector::PhysicalDeviceSelector(Instance const& instance, VkSurfa
 	criteria.desired_version = instance.api_version;
 }
 
-detail::Result<std::vector<PhysicalDevice>> PhysicalDeviceSelector::select_impl(DeviceSelectionMode selection) const {
+Result<std::vector<PhysicalDevice>> PhysicalDeviceSelector::select_impl(DeviceSelectionMode selection) const {
 #if !defined(NDEBUG)
 	// Validation
 	for (const auto& node : criteria.extended_features_chain) {
@@ -1177,7 +1155,7 @@ detail::Result<std::vector<PhysicalDevice>> PhysicalDeviceSelector::select_impl(
 
 	if (criteria.require_present && !criteria.defer_surface_initialization) {
 		if (instance_info.surface == VK_NULL_HANDLE)
-			return detail::Result<std::vector<PhysicalDevice>>{ PhysicalDeviceError::no_surface_provided };
+			return Result<std::vector<PhysicalDevice>>{ PhysicalDeviceError::no_surface_provided };
 	}
 
 	// Get the VkPhysicalDevice handles on the system
@@ -1186,11 +1164,10 @@ detail::Result<std::vector<PhysicalDevice>> PhysicalDeviceSelector::select_impl(
 	auto vk_physical_devices_ret = detail::get_vector<VkPhysicalDevice>(
 	    vk_physical_devices, detail::vulkan_functions().fp_vkEnumeratePhysicalDevices, instance_info.instance);
 	if (vk_physical_devices_ret != VK_SUCCESS) {
-		return detail::Result<std::vector<PhysicalDevice>>{ PhysicalDeviceError::failed_enumerate_physical_devices,
-			vk_physical_devices_ret };
+		return Result<std::vector<PhysicalDevice>>{ PhysicalDeviceError::failed_enumerate_physical_devices, vk_physical_devices_ret };
 	}
 	if (vk_physical_devices.size() == 0) {
-		return detail::Result<std::vector<PhysicalDevice>>{ PhysicalDeviceError::no_physical_devices_found };
+		return Result<std::vector<PhysicalDevice>>{ PhysicalDeviceError::no_physical_devices_found };
 	}
 
 	auto fill_out_phys_dev_with_criteria = [&](PhysicalDevice& phys_dev) {
@@ -1248,32 +1225,32 @@ detail::Result<std::vector<PhysicalDevice>> PhysicalDeviceSelector::select_impl(
 	return physical_devices;
 }
 
-detail::Result<PhysicalDevice> PhysicalDeviceSelector::select(DeviceSelectionMode selection) const {
+Result<PhysicalDevice> PhysicalDeviceSelector::select(DeviceSelectionMode selection) const {
 	auto const selected_devices = select_impl(selection);
 
-	if (!selected_devices) return detail::Result<PhysicalDevice>{ selected_devices.error() };
+	if (!selected_devices) return Result<PhysicalDevice>{ selected_devices.error() };
 	if (selected_devices.value().size() == 0) {
-		return detail::Result<PhysicalDevice>{ PhysicalDeviceError::no_suitable_device };
+		return Result<PhysicalDevice>{ PhysicalDeviceError::no_suitable_device };
 	}
 
 	return selected_devices.value().at(0);
 }
 
 // Return all devices which are considered suitable - intended for applications which want to let the user pick the physical device
-detail::Result<std::vector<PhysicalDevice>> PhysicalDeviceSelector::select_devices(DeviceSelectionMode selection) const {
+Result<std::vector<PhysicalDevice>> PhysicalDeviceSelector::select_devices(DeviceSelectionMode selection) const {
 	auto const selected_devices = select_impl(selection);
-	if (!selected_devices) return detail::Result<std::vector<PhysicalDevice>>{ selected_devices.error() };
+	if (!selected_devices) return Result<std::vector<PhysicalDevice>>{ selected_devices.error() };
 	if (selected_devices.value().size() == 0) {
-		return detail::Result<std::vector<PhysicalDevice>>{ PhysicalDeviceError::no_suitable_device };
+		return Result<std::vector<PhysicalDevice>>{ PhysicalDeviceError::no_suitable_device };
 	}
 	return selected_devices.value();
 }
 
-detail::Result<std::vector<std::string>> PhysicalDeviceSelector::select_device_names(DeviceSelectionMode selection) const {
+Result<std::vector<std::string>> PhysicalDeviceSelector::select_device_names(DeviceSelectionMode selection) const {
 	auto const selected_devices = select_impl(selection);
-	if (!selected_devices) return detail::Result<std::vector<std::string>>{ selected_devices.error() };
+	if (!selected_devices) return Result<std::vector<std::string>>{ selected_devices.error() };
 	if (selected_devices.value().size() == 0) {
-		return detail::Result<std::vector<std::string>>{ PhysicalDeviceError::no_suitable_device };
+		return Result<std::vector<std::string>>{ PhysicalDeviceError::no_suitable_device };
 	}
 	std::vector<std::string> names;
 	for (const auto& pd : selected_devices.value()) {
@@ -1410,61 +1387,55 @@ PhysicalDevice::operator VkPhysicalDevice() const { return this->physical_device
 
 // ---- Queues ---- //
 
-detail::Result<uint32_t> Device::get_queue_index(QueueType type) const {
+Result<uint32_t> Device::get_queue_index(QueueType type) const {
 	uint32_t index = detail::QUEUE_INDEX_MAX_VALUE;
 	switch (type) {
 		case QueueType::present:
 			index = detail::get_present_queue_index(physical_device.physical_device, surface, queue_families);
-			if (index == detail::QUEUE_INDEX_MAX_VALUE)
-				return detail::Result<uint32_t>{ QueueError::present_unavailable };
+			if (index == detail::QUEUE_INDEX_MAX_VALUE) return Result<uint32_t>{ QueueError::present_unavailable };
 			break;
 		case QueueType::graphics:
 			index = detail::get_first_queue_index(queue_families, VK_QUEUE_GRAPHICS_BIT);
-			if (index == detail::QUEUE_INDEX_MAX_VALUE)
-				return detail::Result<uint32_t>{ QueueError::graphics_unavailable };
+			if (index == detail::QUEUE_INDEX_MAX_VALUE) return Result<uint32_t>{ QueueError::graphics_unavailable };
 			break;
 		case QueueType::compute:
 			index = detail::get_separate_queue_index(queue_families, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT);
-			if (index == detail::QUEUE_INDEX_MAX_VALUE)
-				return detail::Result<uint32_t>{ QueueError::compute_unavailable };
+			if (index == detail::QUEUE_INDEX_MAX_VALUE) return Result<uint32_t>{ QueueError::compute_unavailable };
 			break;
 		case QueueType::transfer:
 			index = detail::get_separate_queue_index(queue_families, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_COMPUTE_BIT);
-			if (index == detail::QUEUE_INDEX_MAX_VALUE)
-				return detail::Result<uint32_t>{ QueueError::transfer_unavailable };
+			if (index == detail::QUEUE_INDEX_MAX_VALUE) return Result<uint32_t>{ QueueError::transfer_unavailable };
 			break;
 		default:
-			return detail::Result<uint32_t>{ QueueError::invalid_queue_family_index };
+			return Result<uint32_t>{ QueueError::invalid_queue_family_index };
 	}
 	return index;
 }
-detail::Result<uint32_t> Device::get_dedicated_queue_index(QueueType type) const {
+Result<uint32_t> Device::get_dedicated_queue_index(QueueType type) const {
 	uint32_t index = detail::QUEUE_INDEX_MAX_VALUE;
 	switch (type) {
 		case QueueType::compute:
 			index = detail::get_dedicated_queue_index(queue_families, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT);
-			if (index == detail::QUEUE_INDEX_MAX_VALUE)
-				return detail::Result<uint32_t>{ QueueError::compute_unavailable };
+			if (index == detail::QUEUE_INDEX_MAX_VALUE) return Result<uint32_t>{ QueueError::compute_unavailable };
 			break;
 		case QueueType::transfer:
 			index = detail::get_dedicated_queue_index(queue_families, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_COMPUTE_BIT);
-			if (index == detail::QUEUE_INDEX_MAX_VALUE)
-				return detail::Result<uint32_t>{ QueueError::transfer_unavailable };
+			if (index == detail::QUEUE_INDEX_MAX_VALUE) return Result<uint32_t>{ QueueError::transfer_unavailable };
 			break;
 		default:
-			return detail::Result<uint32_t>{ QueueError::invalid_queue_family_index };
+			return Result<uint32_t>{ QueueError::invalid_queue_family_index };
 	}
 	return index;
 }
 
-detail::Result<VkQueue> Device::get_queue(QueueType type) const {
+Result<VkQueue> Device::get_queue(QueueType type) const {
 	auto index = get_queue_index(type);
 	if (!index.has_value()) return { index.error() };
 	VkQueue out_queue;
 	internal_table.fp_vkGetDeviceQueue(device, index.value(), 0, &out_queue);
 	return out_queue;
 }
-detail::Result<VkQueue> Device::get_dedicated_queue(QueueType type) const {
+Result<VkQueue> Device::get_dedicated_queue(QueueType type) const {
 	auto index = get_dedicated_queue_index(type);
 	if (!index.has_value()) return { index.error() };
 	VkQueue out_queue;
@@ -1491,7 +1462,7 @@ void destroy_device(Device device) {
 
 DeviceBuilder::DeviceBuilder(PhysicalDevice phys_device) { physical_device = phys_device; }
 
-detail::Result<Device> DeviceBuilder::build() const {
+Result<Device> DeviceBuilder::build() const {
 
 	std::vector<CustomQueueDescription> queue_descriptions;
 	queue_descriptions.insert(queue_descriptions.end(), info.queue_descriptions.begin(), info.queue_descriptions.end());
@@ -1587,6 +1558,7 @@ detail::Result<Device> DeviceBuilder::build() const {
 	device.fp_vkGetDeviceProcAddr = detail::vulkan_functions().fp_vkGetDeviceProcAddr;
 	detail::vulkan_functions().get_device_proc_addr(device.device, device.internal_table.fp_vkGetDeviceQueue, "vkGetDeviceQueue");
 	detail::vulkan_functions().get_device_proc_addr(device.device, device.internal_table.fp_vkDestroyDevice, "vkDestroyDevice");
+	device.instance_version = physical_device.instance_version;
 	return device;
 }
 DeviceBuilder& DeviceBuilder::custom_queue_setup(std::vector<CustomQueueDescription> queue_descriptions) {
@@ -1718,9 +1690,10 @@ void destroy_swapchain(Swapchain const& swapchain) {
 }
 
 SwapchainBuilder::SwapchainBuilder(Device const& device) {
-	info.device = device.device;
 	info.physical_device = device.physical_device.physical_device;
+	info.device = device.device;
 	info.surface = device.surface;
+	info.instance_version = device.instance_version;
 	auto present = device.get_queue_index(QueueType::present);
 	auto graphics = device.get_queue_index(QueueType::graphics);
 	assert(graphics.has_value() && present.has_value() && "Graphics and Present queue indexes must be valid");
@@ -1729,9 +1702,10 @@ SwapchainBuilder::SwapchainBuilder(Device const& device) {
 	info.allocation_callbacks = device.allocation_callbacks;
 }
 SwapchainBuilder::SwapchainBuilder(Device const& device, VkSurfaceKHR const surface) {
-	info.device = device.device;
 	info.physical_device = device.physical_device.physical_device;
+	info.device = device.device;
 	info.surface = surface;
+	info.instance_version = device.instance_version;
 	Device temp_device = device;
 	temp_device.surface = surface;
 	auto present = temp_device.get_queue_index(QueueType::present);
@@ -1760,9 +1734,9 @@ SwapchainBuilder::SwapchainBuilder(VkPhysicalDevice const physical_device,
 			info.present_queue_index = detail::get_present_queue_index(physical_device, surface, queue_families);
 	}
 }
-detail::Result<Swapchain> SwapchainBuilder::build() const {
+Result<Swapchain> SwapchainBuilder::build() const {
 	if (info.surface == VK_NULL_HANDLE) {
-		return detail::Error{ SwapchainError::surface_handle_not_provided };
+		return Error{ SwapchainError::surface_handle_not_provided };
 	}
 
 	auto desired_formats = info.desired_formats;
@@ -1772,7 +1746,7 @@ detail::Result<Swapchain> SwapchainBuilder::build() const {
 
 	auto surface_support_ret = detail::query_surface_support_details(info.physical_device, info.surface);
 	if (!surface_support_ret.has_value())
-		return detail::Error{ SwapchainError::failed_query_surface_support_details, surface_support_ret.vk_result() };
+		return Error{ SwapchainError::failed_query_surface_support_details, surface_support_ret.vk_result() };
 	auto surface_support = surface_support_ret.value();
 
 	uint32_t image_count = info.min_image_count;
@@ -1848,11 +1822,12 @@ detail::Result<Swapchain> SwapchainBuilder::build() const {
 	auto res = swapchain_create_proc(info.device, &swapchain_create_info, info.allocation_callbacks, &swapchain.swapchain);
 
 	if (res != VK_SUCCESS) {
-		return detail::Error{ SwapchainError::failed_create_swapchain, res };
+		return Error{ SwapchainError::failed_create_swapchain, res };
 	}
 	swapchain.device = info.device;
 	swapchain.image_format = surface_format.format;
 	swapchain.color_space = surface_format.colorSpace;
+	swapchain.image_usage_flags = info.image_usage_flags;
 	swapchain.extent = extent;
 	detail::vulkan_functions().get_device_proc_addr(
 	    info.device, swapchain.internal_table.fp_vkGetSwapchainImagesKHR, "vkGetSwapchainImagesKHR");
@@ -1862,36 +1837,58 @@ detail::Result<Swapchain> SwapchainBuilder::build() const {
 	    info.device, swapchain.internal_table.fp_vkDestroySwapchainKHR, "vkDestroySwapchainKHR");
 	auto images = swapchain.get_images();
 	if (!images) {
-		return detail::Error{ SwapchainError::failed_get_swapchain_images };
+		return Error{ SwapchainError::failed_get_swapchain_images };
 	}
 	swapchain.requested_min_image_count = image_count;
 	swapchain.present_mode = present_mode;
 	swapchain.image_count = static_cast<uint32_t>(images.value().size());
+	swapchain.instance_version = info.instance_version;
 	swapchain.allocation_callbacks = info.allocation_callbacks;
 	return swapchain;
 }
-detail::Result<std::vector<VkImage>> Swapchain::get_images() {
+Result<std::vector<VkImage>> Swapchain::get_images() {
 	std::vector<VkImage> swapchain_images;
 
 	auto swapchain_images_ret =
 	    detail::get_vector<VkImage>(swapchain_images, internal_table.fp_vkGetSwapchainImagesKHR, device, swapchain);
 	if (swapchain_images_ret != VK_SUCCESS) {
-		return detail::Error{ SwapchainError::failed_get_swapchain_images, swapchain_images_ret };
+		return Error{ SwapchainError::failed_get_swapchain_images, swapchain_images_ret };
 	}
 	return swapchain_images;
 }
-detail::Result<std::vector<VkImageView>> Swapchain::get_image_views() { return get_image_views(nullptr); }
-detail::Result<std::vector<VkImageView>> Swapchain::get_image_views(const void* pNext) {
+Result<std::vector<VkImageView>> Swapchain::get_image_views() { return get_image_views(nullptr); }
+Result<std::vector<VkImageView>> Swapchain::get_image_views(const void* pNext) {
 	const auto swapchain_images_ret = get_images();
 	if (!swapchain_images_ret) return swapchain_images_ret.error();
 	const auto swapchain_images = swapchain_images_ret.value();
 
+#if defined(VK_VERSION_1_1)
+	bool already_contains_image_view_usage = false;
+	while (pNext) {
+		if (reinterpret_cast<const VkBaseInStructure*>(pNext)->sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO) {
+			already_contains_image_view_usage = true;
+			break;
+		}
+		pNext = reinterpret_cast<const VkBaseInStructure*>(pNext)->pNext;
+	}
+	VkImageViewUsageCreateInfo desired_flags{};
+	desired_flags.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO;
+	desired_flags.pNext = pNext;
+	desired_flags.usage = image_usage_flags;
+#endif
 	std::vector<VkImageView> views(swapchain_images.size());
-
 	for (size_t i = 0; i < swapchain_images.size(); i++) {
 		VkImageViewCreateInfo createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+#if defined(VK_VERSION_1_1)
+		if (instance_version >= VKB_VK_API_VERSION_1_1 && !already_contains_image_view_usage) {
+			createInfo.pNext = &desired_flags;
+		} else {
+			createInfo.pNext = pNext;
+		}
+#else
 		createInfo.pNext = pNext;
+#endif
 		createInfo.image = swapchain_images[i];
 		createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		createInfo.format = image_format;
@@ -1904,9 +1901,8 @@ detail::Result<std::vector<VkImageView>> Swapchain::get_image_views(const void* 
 		createInfo.subresourceRange.levelCount = 1;
 		createInfo.subresourceRange.baseArrayLayer = 0;
 		createInfo.subresourceRange.layerCount = 1;
-
 		VkResult res = internal_table.fp_vkCreateImageView(device, &createInfo, allocation_callbacks, &views[i]);
-		if (res != VK_SUCCESS) return detail::Error{ SwapchainError::failed_create_swapchain_image_views, res };
+		if (res != VK_SUCCESS) return Error{ SwapchainError::failed_create_swapchain_image_views, res };
 	}
 	return views;
 }
