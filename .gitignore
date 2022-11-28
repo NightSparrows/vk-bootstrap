@@ -3,3 +3,7 @@
 *.idea
 cmake-build-*
 build
+bin/*
+bin-int/*
+*.vcxproj
+*.vcxproj.user
