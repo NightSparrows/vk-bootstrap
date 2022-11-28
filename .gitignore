@@ -7,3 +7,5 @@ bin/*
 bin-int/*
 *.vcxproj
 *.vcxproj.user
+Makefile
+
