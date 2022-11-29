@@ -15,6 +15,9 @@ project "VKBootstrap"
 		"src/VkBootstrapDispatch.h"
 	}
 	
+	filter { "options:buildType=shared", "system:linux" }
+		buildoptions { "-fPIC" }
+	
 	filter "configurations:Debug"
 		runtime "Debug"
 		symbols "on"
