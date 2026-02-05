@@ -4,3 +4,8 @@
 cmake-build-*
 build
 .cache
+
+bin/
+bin-int/
+Makefile
+*.vcxproj
