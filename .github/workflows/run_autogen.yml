@@ -30,7 +30,7 @@ jobs:
         PR_NUMBER: ${{ github.event.number }}
 
     steps:
-      - uses: actions/create-github-app-token@v2
+      - uses: actions/create-github-app-token@v3
         id: generate-token
         with:
           app-id: ${{ vars.APP_ID }}
@@ -44,7 +44,7 @@ jobs:
       - run: pip install vulkan_object
 
       - name: Check out repository code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 2
 

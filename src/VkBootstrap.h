@@ -37,6 +37,7 @@
 #include <string>
 #include <system_error>
 #include <variant>
+#include <utility>
 
 #include <vulkan/vulkan_core.h>
 
@@ -760,6 +761,10 @@ struct Device {
     // Only a compute or transfer queue type is valid. All other queue types do not support a 'dedicated' queue
     Result<VkQueue> get_dedicated_queue(QueueType type) const;
 
+    Result<std::pair<VkQueue, uint32_t>> get_queue_and_index(QueueType type) const;
+    // Only a compute or transfer queue type is valid. All other queue types do not support a 'dedicated' queue
+    Result<std::pair<VkQueue, uint32_t>> get_dedicated_queue_and_index(QueueType type) const;
+
     // Return a loaded dispatch table
     DispatchTable make_table() const;
 
@@ -815,12 +820,11 @@ class DeviceBuilder {
     DeviceBuilder& custom_queue_setup(std::span<const CustomQueueDescription> queue_descriptions);
 #endif
 
-    // Add a structure to the pNext chain of VkDeviceCreateInfo.
+    // Add a pNext chain structure to the pNext chain of VkDeviceCreateInfo.
     // The structure must be valid when DeviceBuilder::build() is called.
-    template <typename T> DeviceBuilder& add_pNext(T* structure) {
-        info.pNext_chain.push_back(structure);
-        return *this;
-    }
+    // The structure must be a type that is valid to add to the pNext chain of VkDeviceCreateInfo
+    // Any structures chained through the pNext pointer will also be added
+    DeviceBuilder& add_pNext(void* structure_to_add);
 
     // Provide custom allocation callbacks.
     DeviceBuilder& set_allocation_callbacks(VkAllocationCallbacks* callbacks);
@@ -858,6 +862,12 @@ struct Swapchain {
     // structure.
     Result<std::vector<VkImageView>> get_image_views();
     Result<std::vector<VkImageView>> get_image_views(const void* pNext);
+
+    // Returns both a vector of VkImage handles to the swapchain and a vector of VkImageViews to said VkImages.
+    // VkImageViews must be destroyed. The pNext chain must be a nullptr or a valid structure.
+    Result<std::pair<std::vector<VkImage>, std::vector<VkImageView>>> get_images_and_image_views();
+    Result<std::pair<std::vector<VkImage>, std::vector<VkImageView>>> get_images_and_image_views(const void* pNext);
+
     void destroy_image_views(size_t count, VkImageView const* image_views);
     void destroy_image_views(std::vector<VkImageView> const& image_views);
 #if VKB_SPAN_OVERLOADS
@@ -973,10 +983,9 @@ class SwapchainBuilder {
 
     // Add a structure to the pNext chain of VkSwapchainCreateInfoKHR.
     // The structure must be valid when SwapchainBuilder::build() is called.
-    template <typename T> SwapchainBuilder& add_pNext(T* structure) {
-        info.pNext_chain.push_back(structure);
-        return *this;
-    }
+    // The structure must be a type that is valid to add to the pNext chain of VkSwapchainCreateInfoKHR
+    // Any structures chained through the pNext pointer will also be added
+    SwapchainBuilder& add_pNext(void* structure_to_add);
 
     // Provide custom allocation callbacks.
     SwapchainBuilder& set_allocation_callbacks(VkAllocationCallbacks* callbacks);

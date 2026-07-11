@@ -138,6 +138,16 @@ std::vector<vkb::detail::FeaturesChain::StructInfo>::const_iterator FeaturesChai
     });
 }
 
+void add_all_pnext_structures(std::vector<void*>& pNext_chain, void* structure_to_add) {
+    auto pNext_iter = structure_to_add;
+    while (pNext_iter != nullptr) {
+        pNext_chain.push_back(pNext_iter);
+        VkBaseOutStructure out_structure{};
+        memcpy(&out_structure, pNext_iter, sizeof(VkBaseOutStructure));
+        pNext_iter = out_structure.pNext;
+    }
+}
+
 
 class VulkanFunctions {
     private:
@@ -455,6 +465,17 @@ template <typename T> void setup_pNext_chain(T& structure, std::vector<void*> co
     structure.pNext = nullptr;
     if (structs.empty()) return;
     for (size_t i = 0; i < structs.size() - 1; i++) {
+        // Make sure we aren't adding the same struct more than once. We do not care about duplicate sTypes here.
+        bool is_duplicate = false;
+        for (size_t j = 0; j != i; j++) {
+            if (structs.at(i) == structs.at(j)) {
+                is_duplicate = true;
+                break;
+            }
+        }
+        if (is_duplicate) {
+            continue;
+        }
         VkBaseOutStructure out_structure{};
         memcpy(&out_structure, structs.at(i), sizeof(VkBaseOutStructure));
 #if !defined(NDEBUG)
@@ -1568,11 +1589,17 @@ Result<uint32_t> Device::get_queue_index(QueueType type) const {
             break;
         case QueueType::compute:
             index = detail::get_separate_queue_index(queue_families, VK_QUEUE_COMPUTE_BIT, VK_QUEUE_TRANSFER_BIT);
-            if (index == detail::QUEUE_INDEX_MAX_VALUE) return Result<uint32_t>{ QueueError::compute_unavailable };
+            if (index == detail::QUEUE_INDEX_MAX_VALUE) {
+                index = detail::get_first_queue_index(queue_families, VK_QUEUE_COMPUTE_BIT);
+                if (index == detail::QUEUE_INDEX_MAX_VALUE) return Result<uint32_t>{ QueueError::compute_unavailable };
+            }
             break;
         case QueueType::transfer:
             index = detail::get_separate_queue_index(queue_families, VK_QUEUE_TRANSFER_BIT, VK_QUEUE_COMPUTE_BIT);
-            if (index == detail::QUEUE_INDEX_MAX_VALUE) return Result<uint32_t>{ QueueError::transfer_unavailable };
+            if (index == detail::QUEUE_INDEX_MAX_VALUE) {
+                index = detail::get_first_queue_index(queue_families, VK_QUEUE_TRANSFER_BIT);
+                if (index == detail::QUEUE_INDEX_MAX_VALUE) return Result<uint32_t>{ QueueError::transfer_unavailable };
+            }
             break;
         default:
             return Result<uint32_t>{ QueueError::invalid_queue_family_index };
@@ -1609,6 +1636,22 @@ Result<VkQueue> Device::get_dedicated_queue(QueueType type) const {
     VkQueue out_queue;
     internal_table.fp_vkGetDeviceQueue(device, index.value(), 0, &out_queue);
     return out_queue;
+}
+
+Result<std::pair<VkQueue, uint32_t>> Device::get_queue_and_index(QueueType type) const {
+    auto index = get_queue_index(type);
+    if (!index.has_value()) return { index.error() };
+    VkQueue out_queue;
+    internal_table.fp_vkGetDeviceQueue(device, index.value(), 0, &out_queue);
+    return std::pair<VkQueue, uint32_t>(out_queue, index.value());
+}
+
+Result<std::pair<VkQueue, uint32_t>> Device::get_dedicated_queue_and_index(QueueType type) const {
+    auto index = get_dedicated_queue_index(type);
+    if (!index.has_value()) return { index.error() };
+    VkQueue out_queue;
+    internal_table.fp_vkGetDeviceQueue(device, index.value(), 0, &out_queue);
+    return std::pair<VkQueue, uint32_t>(out_queue, index.value());
 }
 
 // ---- Dispatch ---- //
@@ -1691,8 +1734,8 @@ Result<Device> DeviceBuilder::build() const {
         }
     }
 
-    for (auto& pnext : info.pNext_chain) {
-        final_pnext_chain.push_back(pnext);
+    for (auto& pNext : info.pNext_chain) {
+        final_pnext_chain.push_back(pNext);
     }
 
     detail::setup_pNext_chain(device_create_info, final_pnext_chain);
@@ -1744,6 +1787,10 @@ DeviceBuilder& DeviceBuilder::custom_queue_setup(std::span<const CustomQueueDesc
     return *this;
 }
 #endif
+DeviceBuilder& DeviceBuilder::add_pNext(void* structure_to_add) {
+    detail::add_all_pnext_structures(info.pNext_chain, structure_to_add);
+    return *this;
+}
 
 // ---- Swapchain ---- //
 
@@ -1875,8 +1922,8 @@ SwapchainBuilder::SwapchainBuilder(Device const& device) {
     auto present = device.get_queue_index(QueueType::present);
     auto graphics = device.get_queue_index(QueueType::graphics);
     assert(graphics.has_value() && present.has_value() && "Graphics and Present queue indexes must be valid");
-    info.graphics_queue_index = present.value();
-    info.present_queue_index = graphics.value();
+    info.graphics_queue_index = graphics.value();
+    info.present_queue_index = present.value();
 }
 SwapchainBuilder::SwapchainBuilder(Device const& device, VkSurfaceKHR const surface) {
     info.physical_device = device.physical_device.physical_device;
@@ -2040,17 +2087,28 @@ Result<std::vector<VkImage>> Swapchain::get_images() {
 }
 Result<std::vector<VkImageView>> Swapchain::get_image_views() { return get_image_views(nullptr); }
 Result<std::vector<VkImageView>> Swapchain::get_image_views(const void* pNext) {
-    const auto swapchain_images_ret = get_images();
+    auto images_and_image_views_ret = get_images_and_image_views(pNext);
+    if (!images_and_image_views_ret) return { images_and_image_views_ret.error() };
+    return std::move(images_and_image_views_ret.value().second);
+}
+Result<std::pair<std::vector<VkImage>, std::vector<VkImageView>>> Swapchain::get_images_and_image_views() {
+    return get_images_and_image_views(nullptr);
+}
+Result<std::pair<std::vector<VkImage>, std::vector<VkImageView>>> Swapchain::get_images_and_image_views(const void* pNext) {
+    auto swapchain_images_ret = get_images();
     if (!swapchain_images_ret) return swapchain_images_ret.error();
-    const auto& swapchain_images = swapchain_images_ret.value();
+    auto& swapchain_images = swapchain_images_ret.value();
 
     bool already_contains_image_view_usage = false;
-    while (pNext) {
-        if (reinterpret_cast<const VkBaseInStructure*>(pNext)->sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO) {
+    const void* pNext_iter = pNext;
+    while (pNext_iter) {
+        VkBaseOutStructure structure{};
+        memcpy(&structure, pNext, sizeof(VkBaseOutStructure));
+        if (structure.sType == VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO) {
             already_contains_image_view_usage = true;
             break;
         }
-        pNext = reinterpret_cast<const VkBaseInStructure*>(pNext)->pNext;
+        pNext_iter = structure.pNext;
     }
     VkImageViewUsageCreateInfo desired_flags{};
     desired_flags.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_USAGE_CREATE_INFO;
@@ -2083,10 +2141,11 @@ Result<std::vector<VkImageView>> Swapchain::get_image_views(const void* pNext) {
         if (res != VK_SUCCESS) {
             // Cleanup already created image views
             destroy_image_views(i, views.data());
-            return Result<std::vector<VkImageView>>{ SwapchainError::failed_create_swapchain_image_views, res };
+            return Result<std::pair<std::vector<VkImage>, std::vector<VkImageView>>>{ SwapchainError::failed_create_swapchain_image_views,
+                res };
         }
     }
-    return views;
+    return std::pair{ std::move(swapchain_images), std::move(views) };
 }
 void Swapchain::destroy_image_views(size_t count, VkImageView const* image_views) {
     for (size_t i = 0; i < count; ++i) {
@@ -2144,6 +2203,10 @@ SwapchainBuilder& SwapchainBuilder::use_default_present_mode_selection() {
 }
 SwapchainBuilder& SwapchainBuilder::set_allocation_callbacks(VkAllocationCallbacks* callbacks) {
     info.allocation_callbacks = callbacks;
+    return *this;
+}
+SwapchainBuilder& SwapchainBuilder::add_pNext(void* structure_to_add) {
+    detail::add_all_pnext_structures(info.pNext_chain, structure_to_add);
     return *this;
 }
 SwapchainBuilder& SwapchainBuilder::set_image_usage_flags(VkImageUsageFlags usage_flags) {
